@@ -1,0 +1,167 @@
+---
+title: "p2"
+author: "Alberto Iglesias"
+date: "22 de diciembre de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r , include = FALSE}
+#Borrar el espacio de trabajo  y comprobarlo. Tener un entorno limpio
+rm(list = ls())
+ls()
+
+```
+
+## R Markdown
+Segunda práctica voluntaria de Análisis Exploratorio R.
+```{r file, include=FALSE}
+path <- getwd()
+
+if (!file.exists("./datos/dataToClean.csv")){
+  stop(paste0("Se necesita que el data se encuentre descargado y se encuentre en la direccecion:",path,"./datos"))
+}
+
+```
+```{r,echo=FALSE}
+con <- file("./datos/dataToClean.csv","r")
+cleanData <- read.csv(con)
+close(con)
+#head(cleanData)
+#summary(cleanData)
+lapply(cleanData, class)
+
+```
+```{r, echo = FALSE }
+#cambiar la clase de la columna que no son apropiadas
+
+cleanData$Area..use.fill.down.<-as.character(cleanData$Area..use.fill.down.)
+
+cleanData$Street..use.find.and.replace.to.replace.the.odd.character.with.a.space.<-   as.character(cleanData$Street..use.find.and.replace.to.replace.the.odd.character.with.a.space.)
+
+cleanData$Street.2..in.Refine.use.titlecase.and.cluster.and.edit.<- as.character(cleanData$Street.2..in.Refine.use.titlecase.and.cluster.and.edit.)
+
+cleanData$Strange.HTML..use.unescape.HTML. <- as.character(cleanData$Strange.HTML..use.unescape.HTML.)
+
+lapply(cleanData, class)
+
+
+
+```
+
+```{r}
+#Eliminar los espacios blancos
+
+library(stringr)
+
+cleanData$Year <- str_trim(cleanData$Year)
+cleanData$Area..use.fill.down. <- str_trim(cleanData$Area..use.fill.down.)
+cleanData$Street..use.find.and.replace.to.replace.the.odd.character.with.a.space. <- str_trim(cleanData$Street..use.find.and.replace.to.replace.the.odd.character.with.a.space.)
+cleanData$Street.2..in.Refine.use.titlecase.and.cluster.and.edit.<- str_trim(cleanData$Street.2..in.Refine.use.titlecase.and.cluster.and.edit.)
+cleanData$Strange.HTML..use.unescape.HTML. <- str_trim(cleanData$Strange.HTML..use.unescape.HTML.)
+
+```
+```{r}
+#Cambiar el nombre las variables
+colnames(cleanData)[2]<-"Area"
+colnames(cleanData)[3]<-"Street"
+colnames(cleanData)[4]<-"Street2"
+colnames(cleanData)[5]<-"Strange"
+
+```
+
+Cuantas filas tiene algun missing values
+```{r}
+#missing values
+
+rowNa <- cleanData[rowSums(is.na(cleanData)) > 0]
+dim(rowNa)
+```
+El nombre de las columnas que tiene algún NA entre sus valores
+```{r}
+colNa <- cleanData[colSums(is.na(cleanData)) > 0]
+names(colNa)
+```
+
+Tomamos la decision de elimnar las filas que tiene algun NA, no nos interesa para nuestro analisis
+```{r}
+dim(cleanData)
+noMissingValues <- complete.cases(cleanData)
+cleanNoNa <- cleanData[noMissingValues,]
+cleanNa <- cleanData[!noMissingValues,]
+dim(cleanData)
+
+```
+
+Decodificar html correcto:
+```{r}
+library(xml2)
+b<- "Some &ndash; ndash"
+unescape_xml <- function(str){
+  xml2::xml_text(xml2::read_xml(paste0("<x>", str, "</x>")))
+}
+
+unescape_html <- function(str){
+  xml2::xml_text(xml2::read_html(paste0("<x>", str, "</x>")))
+}
+
+b<- cleanData$Strange
+cleanData$Strange <- lapply(b, unescape_html)
+
+```
+Street poner en mayusculas la primera letra
+
+```{r}
+a<- cleanData$Street2
+
+# patron: separar palabra borad
+a<- gsub(pattern = '(broad)([[:lower:]])', perl =TRUE, replacement = 'Broad ', a )
+# patron: separar palabra alceste
+a<- gsub(pattern = '(alceste)([[:lower:]])', perl =TRUE, replacement = 'Alceste ', a )
+# patron: separar palabra arcadian
+a<- gsub(pattern = '(arcadian)([[:lower:]])', perl =TRUE, replacement = 'Arcadian ', a )
+# patron: separar palabra birmingham
+a<- gsub(pattern = '(birmingham)([[:lower:]])', perl =TRUE, replacement = 'Birmingham ', a )
+# patron: separar palabra church
+a<- gsub(pattern = '(church)([[:lower:]])', perl =TRUE, replacement = 'Church ', a )
+# patron: separar palabra International
+a<- gsub(pattern = '(international)([[:lower:]])', perl =TRUE, replacement = 'International ', a )
+
+
+# patron: palabra precedida por una coma
+a<- gsub(pattern = '(,)([[:lower:]])', perl =TRUE, replacement = ' \\2', a )
+# patron: palabra precedida por un espacio
+a<- gsub(pattern = '( )([[:lower:]])', perl =TRUE, replacement = ' \\2', a )
+
+cleanData$Street2<-a
+```
+Sustituir el caracter extrano en Street
+```{r}
+a<- cleanData$Street
+# patron: Sustuir el caracter extraño å por espacio
+a<- gsub(pattern = '(Ã¥)', perl =TRUE, replacement = ' ', a )
+cleanData$Street<-a
+
+```
+```{r}
+path <- getwd()
+file <- paste0(path, "/datos/tidyDataSet.csv")
+cleanData$Strange<- as.character(cleanData$Strange)
+write.csv(cleanData, file = file,row.names=FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
